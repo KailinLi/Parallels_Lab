@@ -1,9 +1,9 @@
-// g++ pthread.cc -lpthread `pkg-config --cflags --libs opencv`
+// g++ omp.cc -fopenmp `pkg-config --cflags --libs opencv`
+// export OMP_NUM_THREADS=20
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-#include <pthread.h>
 using namespace cv;
 using namespace std;
 
@@ -17,7 +17,7 @@ const int EROSION_MATRIX[EROSION_SIZE][EROSION_SIZE] = {
 };
 const int EMPTY = 0;
 const int FULL = 255;
-const int THREAD_CNT = 20;
+const int OMP_CNT = 10;
 
 void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     uchar* aim = res.ptr<uchar>(pos);
@@ -60,29 +60,18 @@ struct Data {
     Data(Mat *image, Mat *res, int begin, int end, int rows, int cols):
         image(image), res(res), begin(begin), end(end), rows(rows), cols(cols) {}
 };
-void *erosion_part(void *parameter) {
-    Data *data = (Data *)parameter;
-    // cout << data->begin << " ** " << data->end << endl;
-    for (int i = data->begin; i < data->end; ++i) {
-        erosion_line(*data->image, *data->res, i, data->rows, data->cols);
+void erosion_part(Mat *image, Mat *res, int begin, int end, int rows, int cols) {
+    for (int i = begin; i < end; ++i) {
+        erosion_line(*image, *res, i, rows, cols);
     }
 }
 void erosion_image(Mat &image, Mat &res) {
     int rows = image.rows;
     int cols = image.cols;
-    pthread_t tid[THREAD_CNT];
-    Data *data[THREAD_CNT];
-    for (int i = 0; i < THREAD_CNT; ++i) {
-        data[i] = new Data(&image, &res, i * rows / THREAD_CNT, 
-                        min((i + 1) * rows / THREAD_CNT, rows), rows, cols);
-        pthread_create(tid + i, NULL, erosion_part, data[i]);
-    }
-    for (int i = 0; i < THREAD_CNT; ++i) {
-        void *tret;
-        pthread_join(*(tid + i), &tret);
-    }
-    for (int i = 0; i < THREAD_CNT; ++i) {
-        delete data[i];
+    #pragma omp parallel for
+    for (int i = 0; i < OMP_CNT; ++i) {
+        erosion_part(&image, &res, i * rows / OMP_CNT, 
+                        min((i + 1) * rows / OMP_CNT, rows), rows, cols);
     }
 }
 int main (int argc, char *argv[]) {
