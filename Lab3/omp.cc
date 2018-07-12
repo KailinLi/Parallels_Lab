@@ -50,16 +50,6 @@ void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     for (; l < cols; ++l)
         aim[l] = FULL;
 }
-struct Data {
-    Mat *image;
-    Mat *res;
-    int begin;
-    int end;
-    int rows;
-    int cols;
-    Data(Mat *image, Mat *res, int begin, int end, int rows, int cols):
-        image(image), res(res), begin(begin), end(end), rows(rows), cols(cols) {}
-};
 void erosion_part(Mat *image, Mat *res, int begin, int end, int rows, int cols) {
     for (int i = begin; i < end; ++i) {
         erosion_line(*image, *res, i, rows, cols);
