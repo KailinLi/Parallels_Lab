@@ -4,85 +4,76 @@
 #include <iostream>
 using namespace cv;
 using namespace std;
-/// Global variables
-Mat src, erosion_dst, dilation_dst;
-int erosion_elem = 0;
-int erosion_size = 0;
-int dilation_elem = 0;
-int dilation_size = 0;
-int const max_elem = 2;
-int const max_kernel_size = 21;
-/** Function Headers */
-void Erosion(int, void*);
-void Dilation(int, void*);
 
-int main(int argc, char** argv)
+Mat& ScanImageAndReduceC(Mat& I, const uchar* const table)
 {
-    src = imread(argv[1], IMREAD_COLOR);
-    if(src.empty()) {
-        cout << "Could not open or find the image!\n" << endl;
-        cout << "Usage: " << argv[0] << " <Input image>" << endl;
-    return -1;
+    // accept only char type matrices
+    CV_Assert(I.depth() == CV_8U);
+    int channels = I.channels();
+    int nRows = I.rows;
+    int nCols = I.cols * channels;
+
+    cout << nRows << " **" << nCols << endl;
+    if (I.isContinuous())
+    {
+        nCols *= nRows;
+        nRows = 1;
     }
-/// Create windows
-    namedWindow("Erosion Demo", WINDOW_AUTOSIZE);
-    namedWindow("Dilation Demo", WINDOW_AUTOSIZE);
-    moveWindow("Dilation Demo", src.cols, 0);
-/// Create Erosion Trackbar
-    createTrackbar("Element:\n 0: Rect \n 1: Cross \n 2: Ellipse", "Erosion Demo",
-          &erosion_elem, max_elem,
-          Erosion);
-    createTrackbar("Kernel size:\n 2n +1", "Erosion Demo",
-          &erosion_size, max_kernel_size,
-          Erosion);
-/// Create Dilation Trackbar
-    createTrackbar("Element:\n 0: Rect \n 1: Cross \n 2: Ellipse", "Dilation Demo",
-          &dilation_elem, max_elem,
-          Dilation);
-    createTrackbar("Kernel size:\n 2n +1", "Dilation Demo",
-          &dilation_size, max_kernel_size,
-          Dilation);
-/// Default start
-    Erosion(0, 0);
-    Dilation(0, 0);
-    waitKey(0);
+    int i,j;
+    uchar* p;
+    for( i = 0; i < nRows; ++i)
+    {
+        p = I.ptr<uchar>(i);
+        for ( j = 0; j < nCols; ++j)
+        {
+            cout << (int)p[j] << endl;
+            p[j] = table[p[j]];
+        }
+    }
+    return I;
+}
+int main( int argc, char** argv )
+{
+    if( argc != 3)
+    {
+     cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
+     return -1;
+    }
+
+    Mat image;
+    // Mat image (2, 2, CV_8UC3, Scalar(0,0,255));
+    // cout << "M =" << endl << image << endl << endl;
+    image = imread(argv[1], IMREAD_GRAYSCALE);
+    int divideWith = 0; // convert our input string to number - C++ style
+    stringstream s;
+    s << argv[2];
+    s >> divideWith;
+    if (!s || !divideWith)
+    {
+        cout << "Invalid number entered for dividing. " << endl;
+        return -1;
+    }
+    uchar table[256];
+    for (int i = 0; i < 256; ++i)
+       table[i] = (uchar)(divideWith * (i/divideWith));
+
+    // ScanImageAndReduceC(image, table);
+    // threshold(image, image, 150, 1, CV_THRESH_BINARY);
+
+    ScanImageAndReduceC(image, table);
+
+       
+    // image = imread(argv[1], CV_LOAD_IMAGE_COLOR);   // Read the file
+
+    if(! image.data )                              // Check for invalid input
+    {
+        cout << "Could not open or find the image" << std::endl ;
+        return -1;
+    }
+
+    namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
+    imshow( "Display window", image );                // Show our image inside it.
+
+    waitKey(0);             // Wait for a keystroke in the window
     return 0;
 }
-//![erosion]
-/**
- * @function Erosion
- */
-void Erosion(int, void*)
-{
-int erosion_type = 0;
-if(erosion_elem == 0){ erosion_type = MORPH_RECT; }
-else if(erosion_elem == 1){ erosion_type = MORPH_CROSS; }
-else if(erosion_elem == 2) { erosion_type = MORPH_ELLIPSE; }
-//![kernel]
-  Mat element = getStructuringElement(erosion_type,
-Size(2*erosion_size + 1, 2*erosion_size+1),
-Point(erosion_size, erosion_size));
-//![kernel]
-/// Apply the erosion operation
-erode(src, erosion_dst, element);
-imshow("Erosion Demo", erosion_dst);
-}
-//![erosion]
-//![dilation]
-/**
- * @function Dilation
- */
-void Dilation(int, void*)
-{
-int dilation_type = 0;
-if(dilation_elem == 0){ dilation_type = MORPH_RECT; }
-else if(dilation_elem == 1){ dilation_type = MORPH_CROSS; }
-else if(dilation_elem == 2) { dilation_type = MORPH_ELLIPSE; }
-  Mat element = getStructuringElement(dilation_type,
-Size(2*dilation_size + 1, 2*dilation_size+1),
-Point(dilation_size, dilation_size));
-/// Apply the dilation operation
-dilate(src, dilation_dst, element);
-imshow("Dilation Demo", dilation_dst);
-}
-//![dilation]
