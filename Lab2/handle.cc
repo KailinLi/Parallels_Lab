@@ -71,11 +71,11 @@ int main (int argc, char *argv[]) {
     double secs = (t1-t0)/cv::getTickFrequency();
     cout << "time cost:" << secs << endl;
 
-    namedWindow("Origin", WINDOW_AUTOSIZE);
-    imshow("Origin", image);
-    namedWindow("Result", WINDOW_AUTOSIZE);
-    imshow("Result", res);
-    waitKey(0);
-    // imwrite("./output.jpg", image);
+    // namedWindow("Origin", WINDOW_AUTOSIZE);
+    // imshow("Origin", image);
+    // namedWindow("Result", WINDOW_AUTOSIZE);
+    // imshow("Result", res);
+    // waitKey(0);
+    // imwrite("./after.jpg", image);
     return 0;
 }

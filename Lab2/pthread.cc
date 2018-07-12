@@ -2,78 +2,104 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
+#include <pthread.h>
 using namespace cv;
 using namespace std;
 
-Mat& ScanImageAndReduceC(Mat& I, const uchar* const table)
-{
-    // accept only char type matrices
-    CV_Assert(I.depth() == CV_8U);
-    int channels = I.channels();
-    int nRows = I.rows;
-    int nCols = I.cols * channels;
+const int EROSION_SIZE = 5;
+const int EROSION_MATRIX[EROSION_SIZE][EROSION_SIZE] = {
+    {0, 0, 1, 0, 0},
+    {0, 0, 1, 0, 0},
+    {1, 1, 1, 1, 1},
+    {0, 0, 1, 0, 0},
+    {0, 0, 1, 0, 0}
+};
+const int EMPTY = 0;
+const int FULL = 255;
+const int THREAD_CNT = 20;
 
-    cout << nRows << " **" << nCols << endl;
-    if (I.isContinuous())
-    {
-        nCols *= nRows;
-        nRows = 1;
+void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
+    uchar* aim = res.ptr<uchar>(pos);
+    if (pos < EROSION_SIZE / 2 && pos >= rows - EROSION_SIZE / 2) {
+        for (int l = 0; l < cols; ++l)
+            aim[l] = FULL;
+        return;
     }
-    int i,j;
-    uchar* p;
-    for( i = 0; i < nRows; ++i)
-    {
-        p = I.ptr<uchar>(i);
-        for ( j = 0; j < nCols; ++j)
-        {
-            cout << (int)p[j] << endl;
-            p[j] = table[p[j]];
+    uchar* cache[EROSION_SIZE];
+    for (int i = 0; i < EROSION_SIZE; ++i) {
+        cache[i] = image.ptr<uchar>(i + pos - EROSION_SIZE / 2);
+    }
+    int l;
+    for (l = 0; l < EROSION_SIZE / 2 && l < cols; ++l) {
+        aim[l] = FULL;
+    }
+    for (; l < cols - EROSION_SIZE / 2; ++l) {
+        bool result = true;
+        for (int i = 0; i < EROSION_SIZE && result; ++i) {
+            for (int j = 0; j < EROSION_SIZE; ++j) {
+                if (EROSION_MATRIX[i][j] && !cache[i][j + l - EROSION_SIZE / 2]) {
+                    result = false;
+                    break;
+                }
+            }
         }
+        if (result) aim[l] = FULL;
+        else aim[l] = EMPTY;
     }
-    return I;
+    for (; l < cols; ++l)
+        aim[l] = FULL;
 }
-int main( int argc, char** argv )
-{
-    if( argc != 3)
-    {
-     cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
-     return -1;
+struct Data {
+    Mat *image;
+    Mat *res;
+    int begin;
+    int end;
+    int rows;
+    int cols;
+    Data(Mat *image, Mat *res, int begin, int end, int rows, int cols):
+        image(image), res(res), begin(begin), end(end), rows(rows), cols(cols) {}
+};
+void *erosion_part(void *parameter) {
+    Data *data = (Data *)parameter;
+    // cout << data->begin << " ** " << data->end << endl;
+    for (int i = data->begin; i < data->end; ++i) {
+        erosion_line(*data->image, *data->res, i, data->rows, data->cols);
     }
-
-    Mat image;
-    // Mat image (2, 2, CV_8UC3, Scalar(0,0,255));
-    // cout << "M =" << endl << image << endl << endl;
-    image = imread(argv[1], IMREAD_GRAYSCALE);
-    int divideWith = 0; // convert our input string to number - C++ style
-    stringstream s;
-    s << argv[2];
-    s >> divideWith;
-    if (!s || !divideWith)
-    {
-        cout << "Invalid number entered for dividing. " << endl;
-        return -1;
+}
+void erosion_image(Mat &image, Mat &res) {
+    int rows = image.rows;
+    int cols = image.cols;
+    pthread_t tid[THREAD_CNT];
+    Data *data[THREAD_CNT];
+    for (int i = 0; i < THREAD_CNT; ++i) {
+        data[i] = new Data(&image, &res, i * rows / THREAD_CNT, 
+                        min((i + 1) * rows / THREAD_CNT, rows), rows, cols);
+        pthread_create(tid + i, NULL, erosion_part, data[i]);
     }
-    uchar table[256];
-    for (int i = 0; i < 256; ++i)
-       table[i] = (uchar)(divideWith * (i/divideWith));
-
-    // ScanImageAndReduceC(image, table);
-    // threshold(image, image, 150, 1, CV_THRESH_BINARY);
-
-    ScanImageAndReduceC(image, table);
-
-       
-    // image = imread(argv[1], CV_LOAD_IMAGE_COLOR);   // Read the file
-
-    if(! image.data )                              // Check for invalid input
-    {
-        cout << "Could not open or find the image" << std::endl ;
-        return -1;
+    for (int i = 0; i < THREAD_CNT; ++i) {
+        void *tret;
+        pthread_join(*(tid + i), &tret);
     }
+    for (int i = 0; i < THREAD_CNT; ++i) {
+        delete data[i];
+    }
+}
+int main (int argc, char *argv[]) {
+    if (argc != 2) return -1;
+    Mat image = imread(argv[1], IMREAD_GRAYSCALE);      // read image
+    threshold(image, image, 105, 255, CV_THRESH_BINARY_INV);  // turn image to binary
+    Mat res = image.clone();
 
-    namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
-    imshow( "Display window", image );                // Show our image inside it.
+    int64 t0 = cv::getTickCount();
+    erosion_image(image, res);
+    int64 t1 = cv::getTickCount();
+    double secs = (t1-t0)/cv::getTickFrequency();
+    cout << "time cost:" << secs << endl;
 
-    waitKey(0);             // Wait for a keystroke in the window
+    // namedWindow("Origin", WINDOW_AUTOSIZE);
+    // imshow("Origin", image);
+    // namedWindow("Result", WINDOW_AUTOSIZE);
+    // imshow("Result", res);
+    // waitKey(0);
     return 0;
 }
