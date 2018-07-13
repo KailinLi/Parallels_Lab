@@ -50,16 +50,6 @@ void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     for (; l < cols; ++l)
         aim[l] = FULL;
 }
-struct Data {
-    Mat *image;
-    Mat *res;
-    int begin;
-    int end;
-    int rows;
-    int cols;
-    Data(Mat *image, Mat *res, int begin, int end, int rows, int cols):
-        image(image), res(res), begin(begin), end(end), rows(rows), cols(cols) {}
-};
 void erosion_part(Mat *image, Mat *res, int begin, int end, int rows, int cols) {
     for (int i = begin; i < end; ++i) {
         erosion_line(*image, *res, i, rows, cols);
@@ -76,9 +66,31 @@ void erosion_image(Mat &image, Mat &res) {
 }
 int main (int argc, char *argv[]) {
     if (argc != 2) return -1;
-    Mat image = imread(argv[1], IMREAD_GRAYSCALE);      // read image
-    threshold(image, image, 105, 255, CV_THRESH_BINARY_INV);  // turn image to binary
-    Mat res = image.clone();
+
+    int size, rank;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    Mat image, res;
+    int *send_msg;
+    int *rcv_msg;
+    uchar *image_data;
+    uchar *res_data;
+    if (rank == 0) {
+        image = imread(argv[1], IMREAD_GRAYSCALE);      // read image
+        threshold(image, image, 105, 255, CV_THRESH_BINARY_INV);  // turn image to binary
+        res = image.clone();
+        image_data = image.ptr<uchar>(0);
+        int data_length = image.cols * image.rows;
+        res_data = (uchar *)malloc(sizeof(uchar) * data_length);
+
+        send_msg = (int *)malloc(sizeof(int) * size * 2);
+        for (int i = 0; i < size / 2; ++i) {
+            send_msg[i * 2] = image.cols;
+            send_msg[i * 2 + 1] = 
+        }
+    }
+
 
     int64 t0 = cv::getTickCount();
     erosion_image(image, res);
