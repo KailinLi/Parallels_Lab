@@ -24,7 +24,7 @@ const int FULL = 255;
 
 void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     uchar* aim = res.ptr<uchar>(pos);
-    if (pos < EROSION_SIZE / 2 && pos >= rows - EROSION_SIZE / 2) {
+    if (pos < EROSION_SIZE / 2 || pos >= rows - EROSION_SIZE / 2) {
         for (int l = 0; l < cols; ++l)
             aim[l] = FULL;
         return;

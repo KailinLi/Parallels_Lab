@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
         result = (int *)malloc(sizeof(int) * size);
     }
     
-    localdata = (int *)malloc(sizeof(int) * size);
+    localdata = (int *)malloc(sizeof(int) * 2);
 
     MPI_Scatter(globaldata, 2, MPI_INT, localdata, 2, MPI_INT, 0, MPI_COMM_WORLD);
 

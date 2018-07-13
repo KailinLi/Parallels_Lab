@@ -21,7 +21,7 @@ const int THREAD_CNT = 20;
 
 void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     uchar* aim = res.ptr<uchar>(pos);
-    if (pos < EROSION_SIZE / 2 && pos >= rows - EROSION_SIZE / 2) {
+    if (pos < EROSION_SIZE / 2 || pos >= rows - EROSION_SIZE / 2) {
         for (int l = 0; l < cols; ++l)
             aim[l] = FULL;
         return;
@@ -62,7 +62,7 @@ struct Data {
 };
 void *erosion_part(void *parameter) {
     Data *data = (Data *)parameter;
-    // cout << data->begin << " ** " << data->end << endl;
+    // cout << data->begin << " ** " << data->end << "&& " << data->end - << endl;
     for (int i = data->begin; i < data->end; ++i) {
         erosion_line(*data->image, *data->res, i, data->rows, data->cols);
     }
