@@ -1,5 +1,5 @@
 #include <iostream>
-// #include <omp.h>
+#include <omp.h>
 using namespace std;
 const int SIZE = 9;
 struct Board {
@@ -23,47 +23,59 @@ struct Board {
         }
         printf("\n");
     }
-    bool check(int i, int j) {
+    bool check(int i, int j, int n) {
         for (int k = 0; k < SIZE; ++k)
-            if (board[i][k] == board[i][j] && k != j) return false;
+            if (board[i][k] == n && k != j) return false;
         for (int k = 0; k < SIZE; ++k)
-            if (board[k][j] == board[i][j] && k != i) return false;
+            if (board[k][j] == n && k != i) return false;
         for (int pi = 0; pi < 3; ++pi)
             for (int pj = 0; pj < 3; ++pj)
-                if (board[pi + i / 3 * 3][pj + j / 3 * 3] == board[i][j]
+                if (board[pi + i / 3 * 3][pj + j / 3 * 3] == n
                     && pi + i / 3 * 3 != i && pj + j / 3 * 3 != j)
                     return false;
         return true;
     }
 };
 
-Board* solve_sudoku(Board *board, int i, int j) {
-    if (i == SIZE) return board;
-    if (j == SIZE) return solve_sudoku(board, i + 1, 0);
-    if (board->board[i][j]) return solve_sudoku(board, i, j + 1);
+void solve_sudoku(Board *board, int i, int j) {
+    if (i == SIZE) {
+        board->print_board();
+        return;
+    }
+    if (j == SIZE) {
+        solve_sudoku(board, i + 1, 0);
+        return;
+    }
+    if (board->board[i][j]) {
+        solve_sudoku(board, i, j + 1);
+        return;
+    }
     // #pragma omp parallel for
     for (int n = 1; n <= SIZE; ++n) {
-        Board *new_board = new Board(*board);
-        new_board->board[i][j] = n;
-        if (!new_board->check(i, j)) {
-            delete new_board; new_board = nullptr;
-            continue;
+        if (!board->check(i, j, n)) continue;
+        #pragma omp task firstprivate (n, i, j, board)
+        {
+            Board new_board(*board);
+            new_board.board[i][j] = n;
+            solve_sudoku(&new_board, i, j + 1);
         }
-        if (Board * b = solve_sudoku(new_board, i, j + 1)) return b;
     }
-    delete board; board = nullptr;
-    return nullptr;
+    #pragma omp taskwait
+    return;
 }
-bool solver(Board *board) {
-    return solve_sudoku(board, 0, 0);
+void solver(Board *board) {
+    #pragma omp parallel sections
+    {
+        solve_sudoku(board, 0, 0);
+    }
+    return;
 }
 int main () {
     std::ios::sync_with_stdio(false);
 	#ifdef LOCAL
 	freopen("input.txt", "r", stdin);
     #endif
-    Board *board = new Board();
-    board->print_board();
-    if (Board * b = solve_sudoku(board, 0, 0))
-        b->print_board();
+    Board board;
+    board.print_board();
+    solver(&board);
 }
