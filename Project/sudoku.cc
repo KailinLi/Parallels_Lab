@@ -28,10 +28,10 @@ bool check(int i, int j) {
     return true;
 }
 bool solve_sudoku(int i, int j) {
-    if (i == 9) return true;
-    if (j == 9) return solve_sudoku(i + 1, 0);
+    if (i == SIZE) return true;
+    if (j == SIZE) return solve_sudoku(i + 1, 0);
     if (board[i][j]) return solve_sudoku(i, j + 1);
-    for (int n = 1; n <= 9; ++n) {
+    for (int n = 1; n <= SIZE; ++n) {
         board[i][j] = n;
         if (!check(i, j)) continue;
         if (solve_sudoku(i, j + 1)) return true;
