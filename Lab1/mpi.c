@@ -1,44 +1,49 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 int main(int argc, char **argv) {
     int size, rank;
-
+    int *globaldata;
+    int *localdata;
+    int *result;
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int globaldata[4];/*wants to declare array this way*/
-    int localdata;/*without using pointers*/
-
-    int i;
     if (rank == 0) {
-
-        for (i=0; i<size; i++)
-            globaldata[i] = i;
-
-        printf("1. Processor %d has data: ", rank);
-        for (i=0; i<size; i++)
-            printf("%d ", globaldata[i]);
+        globaldata = (int *)malloc(sizeof(int) * size * 2);
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < size; ++j)
+                globaldata[i * size + j] = i * size + j;
+        for (int i = 0; i < 2; ++i)
+            for (int j = 0; j < size; ++j)
+                printf("%d ", globaldata[i * size + j]);
         printf("\n");
+
+        result = (int *)malloc(sizeof(int) * size);
     }
+    
+    localdata = (int *)malloc(sizeof(int) * 2);
 
-    MPI_Scatter(globaldata, 1, MPI_INT, &localdata, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatter(globaldata, 2, MPI_INT, localdata, 2, MPI_INT, 0, MPI_COMM_WORLD);
 
-    printf("2. Processor %d has data %d\n", rank, localdata);
-    localdata= 5;
-    printf("3. Processor %d now has %d\n", rank, localdata);
+    printf("**Processor %d has data:\n", rank);
+    for (int i = 0; i < 2; ++i)
+        printf("%d ", localdata[i]);
+    printf("\n");
+    fflush(stdin);
+    localdata[0] += localdata[1];
 
-    MPI_Gather(&localdata, 1, MPI_INT, globaldata, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(localdata, 1, MPI_INT, result, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     if (rank == 0) {
-        printf("4. Processor %d has data: ", rank);
-        for (i=0; i<size; i++)
-            printf("%d ", globaldata[i]);
+        printf("Sum %d has data: ", rank);
+        for (int i = 0; i < size; i++) {
+            printf("%d ", result[i]);
+        }
         printf("\n");
+        fflush(stdin);
     }
-
 
     MPI_Finalize();
     return 0;

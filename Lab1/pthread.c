@@ -5,7 +5,9 @@ int vector_a[N];
 int vector_b[N];
 int vector_result[N];
 void * add(void * index) {
+    printf("a[%d] + b[%d] = ", (int)index, (int)index);
     vector_result[(int)index] = vector_a[(int)index] + vector_b[(int)index];
+    printf("%d\n", vector_result[(int)index]);
     return (void *)0;
 }
 void init_vector(int *v) {
@@ -24,6 +26,7 @@ int main() {
         void *tret;
         err = pthread_join(*(tid + i), &tret);
     }
+    printf("result:");
     for (int i = 0; i < N; ++i)
         printf("%d ", vector_result[i]);
     printf("\n");
