@@ -55,7 +55,6 @@ void solve_sudoku(Board *board, int i, int j) {
         solve_sudoku(board, i, j + 1);
         return;
     }
-    // #pragma omp parallel for
     for (int n = 1; n <= SIZE; ++n) {
         if (!board->check(i, j, n)) continue;
         #pragma omp task firstprivate (n, i, j, board)

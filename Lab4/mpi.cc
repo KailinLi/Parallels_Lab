@@ -99,8 +99,8 @@ int main (int argc, char *argv[]) {
     MPI_Scatter(send_msg, 3, MPI_INT, rcv_msg, 3, MPI_INT, 0, MPI_COMM_WORLD);
 
     
-    printf("Processor %d: ", rank);
-    printf("%d %d %d\n", rcv_msg[0], rcv_msg[1], rcv_msg[2]);
+    // printf("Processor %d: ", rank);
+    // printf("%d %d %d\n", rcv_msg[0], rcv_msg[1], rcv_msg[2]);
     
     part_data = (uchar *)malloc(sizeof(uchar) * rcv_msg[1]);
     part_res = (uchar *)malloc(sizeof(uchar) * rcv_msg[1]);

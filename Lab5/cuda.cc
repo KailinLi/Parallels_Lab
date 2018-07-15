@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     int cols = image.cols;
     erosion_image(image_data, res_data, rows, cols);
 
-    imwrite("./haha.jpg", res);
+    // imwrite("./output.jpg", res);
 
     return 0;
 }

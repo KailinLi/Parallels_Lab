@@ -17,7 +17,7 @@ const int EROSION_MATRIX[EROSION_SIZE][EROSION_SIZE] = {
 };
 const int EMPTY = 0;
 const int FULL = 255;
-const int THREAD_CNT = 20;
+const int THREAD_CNT = 8;
 
 void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     uchar* aim = res.ptr<uchar>(pos);

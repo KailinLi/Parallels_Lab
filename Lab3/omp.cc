@@ -1,5 +1,5 @@
 // g++ omp.cc -fopenmp `pkg-config --cflags --libs opencv`
-// export OMP_NUM_THREADS=20
+// export OMP_NUM_THREADS=2
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -17,7 +17,6 @@ const int EROSION_MATRIX[EROSION_SIZE][EROSION_SIZE] = {
 };
 const int EMPTY = 0;
 const int FULL = 255;
-const int OMP_CNT = 10;
 
 void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     uchar* aim = res.ptr<uchar>(pos);
@@ -50,18 +49,13 @@ void erosion_line(Mat &image, Mat &res, int pos, int rows, int cols) {
     for (; l < cols; ++l)
         aim[l] = FULL;
 }
-void erosion_part(Mat *image, Mat *res, int begin, int end, int rows, int cols) {
-    for (int i = begin; i < end; ++i) {
-        erosion_line(*image, *res, i, rows, cols);
-    }
-}
+
 void erosion_image(Mat &image, Mat &res) {
     int rows = image.rows;
     int cols = image.cols;
     #pragma omp parallel for
-    for (int i = 0; i < OMP_CNT; ++i) {
-        erosion_part(&image, &res, i * rows / OMP_CNT, 
-                        min((i + 1) * rows / OMP_CNT, rows), rows, cols);
+    for (int i = 0; i < rows; ++i) {
+        erosion_line(image, res, i, rows, cols);
     }
 }
 int main (int argc, char *argv[]) {
