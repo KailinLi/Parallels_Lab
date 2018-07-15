@@ -1,4 +1,5 @@
 #include <iostream>
+#include <ctime>
 using namespace std;
 const int SIZE = 9;
 int board[SIZE][SIZE];
@@ -49,6 +50,10 @@ int main () {
     #endif
     read_board();
     print_board();
+    clock_t begin = clock();
     if (solve_sudoku(0, 0))
         print_board();
+    clock_t end = clock();
+    double timeCost = (double)(end - begin)/CLOCKS_PER_SEC;
+    printf("time: %lf\n", timeCost);
 }

@@ -1,7 +1,9 @@
 #include <iostream>
 #include <omp.h>
+#include <ctime>
 using namespace std;
 const int SIZE = 9;
+clock_t begin_time;
 struct Board {
     int board[SIZE][SIZE];
     Board() {
@@ -40,6 +42,9 @@ struct Board {
 void solve_sudoku(Board *board, int i, int j) {
     if (i == SIZE) {
         board->print_board();
+        clock_t end = clock();
+        double timeCost = (double)(end - begin_time)/CLOCKS_PER_SEC;
+        printf("time: %lf\n", timeCost);
         return;
     }
     if (j == SIZE) {
@@ -77,5 +82,9 @@ int main () {
     #endif
     Board board;
     board.print_board();
+    begin_time = clock();
     solver(&board);
+    // clock_t end = clock();
+    // double timeCost = (double)(end - begin)/CLOCKS_PER_SEC;
+    // printf("time: %lf\n", timeCost);
 }
